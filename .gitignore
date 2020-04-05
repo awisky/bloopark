@@ -21,8 +21,7 @@ __pycache__/
 status
 # odoo files
 odoo
-#this folder will be created with the git pull instruction
-addons_oca/product-attribute
+
 
 # various virtualenv
 /bin/
