@@ -2,13 +2,16 @@
 <odoo>
 
     <record id="view_sale_assistant_wizard" model="ir.ui.view">
-        <field name="name">Sale Search Assistant</field>
+        <field name="name">sale.search.assistant</field>
         <field name="model">search.assistant</field>
         <field name="inherit_id" ref="view_search_assistant_wizard" />
         <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="sale_order_id" readonly="1"  invisible="context.get('update',False)!='sale.order'" />
+            </xpath>
             
             <xpath expr="//footer" position="inside">
-
+                <button name="update_sale_order" string="Update Sale Order" type="object" class="btn-primary" invisible="context.get('update',False)!='sale.order'"/>
                 <button name="create_sale_order" string="Create and View Sale Order" type="object" class="btn-primary" invisible="context.get('create',False)!='sale.order'"/>
                 
             </xpath>

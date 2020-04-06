@@ -34,18 +34,52 @@ class SearchAssistant(models.TransientModel):
     _description = "Search Assistant"
 
     @api.model
+    def _default_purchase_order_id(self):
+        """
+        """
+        if self._context.get('update',False)=='purchase.order':
+            return self._context.get('active_id',False)
+
+    @api.model
+    def _default_partner_readonly(self):
+        """
+        """
+        value=super(SearchAssistant,self)._default_partner_readonly()
+        if self._context.get('update',False)=='purchase.order':
+            value=self._default_purchase_order_id()
+        return value
+
+    @api.model
     def _default_partner_id(self):
         """
         """
-        value=super(SearchAssistant, self)._default_partner_id()
+        value=super(SearchAssistant,self)._default_partner_id()
         if self._context.get('create',False)=='purchase.order':
-            purchase_default_partner_id = self.env['ir.config_parameter'].sudo().get_param(
-            'search_assistant.purchase_default_partner_id', default='False')
-            value = literal_eval(purchase_default_partner_id)
+            
+                purchase_default_partner_id = self.env['ir.config_parameter'].sudo().get_param(
+                    'search_assistant.purchase_default_partner_id', default='False')
+                value = literal_eval(purchase_default_partner_id)
+        if self._context.get('update',False)=='purchase.order':
+            if self._context.get('active_id',False):
+                    value = self.env['purchase.order'].browse(self._context.get('active_id',False)).partner_id.id
+           
         return value
+
+    @api.model
+    def _compute_partner_readonly(self):
+        """
+        """
+        value=super(SearchAssistant,self)._compute_partner_readonly()
+        if self._context.get('create',False)=='sale.order':
+            return self._default_sale_order_id()
     
     partner_id = fields.Many2one(
         'res.partner', string='Partner', default=_default_partner_id, required=True)
+
+    partner_readonly = fields.Boolean(string='Partner Readonly', default=_default_partner_readonly)
+
+    purchase_order_id = fields.Many2one(
+        'purchase.order', string='Purchase Order', default=_default_purchase_order_id)
 
     def action_view_purchase_order(self, sale_order_id):
 

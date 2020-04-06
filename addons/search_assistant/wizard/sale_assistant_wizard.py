@@ -33,19 +33,46 @@ class SearchAssistant(models.TransientModel):
     _inherit = "search.assistant"
     _description = "Search Assistant"
 
+    #
+    @api.model
+    def _default_sale_order_id(self):
+        """
+        """
+        if self._context.get('update',False)=='sale.order':
+            return self._context.get('active_id',False)
+
+    @api.model
+    def _default_partner_readonly(self):
+        """
+        """
+        value=super(SearchAssistant,self)._default_partner_readonly()
+
+        if self._context.get('update',False)=='sale.order':
+            value=self._default_sale_order_id()
+        return value
+
     @api.model
     def _default_partner_id(self):
         """
         """
         value=super(SearchAssistant,self)._default_partner_id()
         if self._context.get('create',False)=='sale.order':
-            sale_default_partner_id = self.env['ir.config_parameter'].sudo().get_param(
-                'search_assistant.sale_default_partner_id', default='False')
-            value = literal_eval(sale_default_partner_id)
+            
+                sale_default_partner_id = self.env['ir.config_parameter'].sudo().get_param(
+                    'search_assistant.sale_default_partner_id', default='False')
+                value = literal_eval(sale_default_partner_id)
+        if self._context.get('update',False)=='sale.order':
+            if self._context.get('active_id',False):
+                    value = self.env['sale.order'].browse(self._context.get('active_id',False)).partner_id.id
+            
         return value
 
     partner_id = fields.Many2one(
         'res.partner', string='Partner', default=_default_partner_id, required=True)
+    partner_readonly = fields.Boolean(string='Partner Readonly', default=_default_partner_readonly)
+
+    sale_order_id = fields.Many2one(
+        'sale.order', string='Sale Order', default=_default_sale_order_id)
 
     def action_view_sale_order(self, sale_order_id):
 

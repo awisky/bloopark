@@ -11,7 +11,7 @@
         <menuitem id="res_purchase_search_menu" 
         parent="purchase.menu_purchase_root"
         action="action_purchase_search_assistant_wizard_form" 
-        sequence="10" groups="group_search_assistant_user" />
+        sequence="150" groups="group_search_assistant_user" />
 
         
 </odoo>

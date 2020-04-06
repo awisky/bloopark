@@ -52,12 +52,18 @@ class SearchAssistant(models.TransientModel):
         """
         return False
 
-
+    @api.model
+    def _default_partner_readonly(self):
+        """
+        """
+        return False
         
+    partner_readonly = fields.Boolean(string='Partner Readonly', default=_default_partner_readonly)
 
     partner_id = fields.Many2one(
         'res.partner', string='Partner', default=_default_partner_id, required=True)
-
+    
+    
     attribute_ids = fields.Many2many(
         'product.attribute', string='Product Attribute')
     

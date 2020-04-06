@@ -26,6 +26,8 @@
         'wizard/sale_assistant_wizard_view.xml',
         'wizard/purchase_assistant_wizard_view.xml',
         'views/res_config_settings_views.xml',
+        'views/sale_order_view.xml',
+        'views/purchase_order_view.xml',
         'views/menu.xml',
     ],
     'installable': True,
