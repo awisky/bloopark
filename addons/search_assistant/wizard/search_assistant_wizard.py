@@ -21,7 +21,6 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
-
 class SearchAssistantLine(models.TransientModel):
     """
     """
@@ -34,11 +33,11 @@ class SearchAssistantLine(models.TransientModel):
     attribute_value_ids = fields.Many2many(
         'product.template.attribute.value', string="Attribute Values")
     product_id = fields.Many2one('product.product', string='Product')
-    product_uom_qty = fields.Float(string='Quantity', digits='Product Unit of Measure', required=True, default=1.0)
 
-    @api.onchange('selected')
-    def on_change_selected(self):
-        _logger.debug('====> on_change_selected line====>')
+    product_uom_qty = fields.Float(
+        string='Quantity', digits='Product Unit of Measure', required=True, default=1.0)
+
+
 
 
 class SearchAssistant(models.TransientModel):
@@ -53,87 +52,90 @@ class SearchAssistant(models.TransientModel):
         """
         return False
 
+
+        
+
     partner_id = fields.Many2one(
         'res.partner', string='Partner', default=_default_partner_id, required=True)
 
     attribute_ids = fields.Many2many(
         'product.attribute', string='Product Attribute')
+    
     attribute_value_ids = fields.Many2many(
         'product.template.attribute.value', string="Attribute Values")
-    description = fields.Char(string='Description')
+    category_ids = fields.Many2many(
+        'product.category', string="Product Category")
+    code = fields.Char(string='Code')
+
+    description = fields.Char(string='Description',
+                              help='Enter the description spaces split your query in \
+                                    case you forgot how was your product description.')
     line_ids = fields.One2many(
         'search.assistant.line', 'search_id', string='Search Results')
     selected = fields.Boolean('')
 
     def make_domain(self, domain_name, code):
         """
-        This stuff is done to allow flexibility search
+        This function builds a domain spliting the code by spaces
         """
-        domain_code = " and "+domain_name + " ilike  %s "
+        domain_code= [(domain_name,'ilike','%')]
         if code:
-            i = code.find(' ')
-            domain_code = ""
-            while i != -1:
-                domain_code += " and "+domain_name + " ilike  %s "
-                code = code[i+1:]
-                i = code.find(' ')
-            domain_code += " and "+domain_name + " ilike  %s "
-        _logger.debug('====> domain_code ====> %s' % domain_code)
+            i=code.find(' ')
+            domain_code=[]
+            while i!= -1:
+                domain_code.append((domain_name,'ilike',code[0:i]))
+                code=code[i+1:]
+                i=code.find(' ')
+            domain_code.append((domain_name,'ilike',code))
         return domain_code
 
-    def insert_domain(self, domain_name, code):
-        """
-        Dinamicaly creates the domain insertion parameters for the domain created before!
-        """
-        domain_code = (code)
-        if code:
-            i = code.find(' ')
-            domain_code = ()
-            while i != -1:
-                domain_code += ('%'+code[:i]+'%',)
-                code = code[i+1:]
-                i = code.find(' ')
-            domain_code += ('%'+code+'%',)
-        _logger.debug(domain_code)
-        return domain_code
 
-    @api.onchange('selected')
-    def on_change_selected(self):
-        """
-        """
-        _logger.debug('====> on_change_selected main====>')
 
-    @api.onchange('attribute_value_ids')
+    @api.onchange('attribute_ids','attribute_value_ids','description','selected','category_ids','code')
     def search(self):
         """
         """
         _logger.debug('====> filter activated ====>')
         product_obj = self.env['product.product']
-        
+        product_attribute_obj = self.env['product.template.attribute.value']
         domain = []
-        filter_values = []
-
-
-        filter_values=list(set(self.attribute_value_ids.ids))
         
-        domain = [('product_template_attribute_value_ids', 'in', filter_values)]
-        _logger.debug('====> domain ====> %s' % domain)
-        product_ids = product_obj.search(domain)
-        line_ids = []
-        search_line_obj = self.env['search.assistant.line']
-        for product in product_ids:
-            line_ids.append((0,0,{ 
-                'selected': True,
-                'product_id': product.id,
-                'attribute_value_ids': False,
-                'attribute_value_ids': [(6, 0, product.product_template_attribute_value_ids.ids)],
-                'description': product.description or '',
-            }))
-        self.line_ids = line_ids
+        attribute_ids = list(set(self.attribute_ids.ids))
+        attribute_values_ids = list(set(self.attribute_value_ids.ids))
+        category_ids = list(set(self.category_ids.ids))
+        description = self.description
+        code = self.code
 
-    
-                    
-    
-    
-    
-       
+        if description and len(description)>0:
+            for description_domain in self.make_domain('name',description):
+                domain.append(description_domain)
+        if code and len(code)>0:
+            for code_domain in self.make_domain('default_code',code):
+                domain.append(code_domain)
+        
+        if len(attribute_values_ids)>0:
+            domain.append(('product_template_attribute_value_ids', 'in', attribute_values_ids))
+        else:
+            if len(attribute_ids)>0:
+                attribute_ids=product_attribute_obj.search([('attribute_id','in',attribute_ids)]).ids
+                domain.append(('product_template_attribute_value_ids', 'in', attribute_ids))
+        
+        if len(category_ids)>0:
+            domain.append(('categ_id', 'in', category_ids))
+        _logger.debug('====> domain ====> %s' % domain)
+        self.line_ids = False
+        
+        if len(domain)>0:
+            product_ids = product_obj.search(domain)
+            line_ids = []
+            search_line_obj = self.env['search.assistant.line']
+            
+            for product in product_ids:
+                line_ids.append((0, 0, {
+                    'selected': self.selected,
+                    'product_id': product.id,
+                    'attribute_value_ids': False,
+                    'attribute_value_ids': [(6, 0, product.product_template_attribute_value_ids.ids)],
+                    'description': product.description or '',
+                }))
+            self.line_ids = line_ids
