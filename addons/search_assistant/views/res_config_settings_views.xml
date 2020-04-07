@@ -36,7 +36,7 @@
                                 <div class="o_setting_left_pane">
                                         <label for="sale_default_partner_id"/>
                                         <div class="text-muted">
-                                                Define the default partner for sale order creation
+                                                Defines the default partner for sale order creation
                                             </div>
                                     </div>
                                     <div class="o_setting_right_pane">
@@ -52,7 +52,7 @@
                                     <div class="o_setting_left_pane">
                                             <label for="purchase_default_partner_id"/>
                                             <div class="text-muted">
-                                                    Define the default partner for purchase order creation
+                                                    Defines the default partner for purchase order creation
                                                 </div>
                                         </div>
                                         <div class="o_setting_right_pane">

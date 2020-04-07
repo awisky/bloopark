@@ -37,8 +37,8 @@ class SearchAssistant(models.TransientModel):
     def _default_purchase_order_id(self):
         """
         """
-        if self._context.get('update',False)=='purchase.order':
-            return self._context.get('active_id',False)
+        if self._context.get('active_model') == 'purchase.order' and self._context.get('active_id', False):
+            return self._context.get('active_id', False)
 
     @api.model
     def _default_partner_readonly(self):
@@ -70,8 +70,8 @@ class SearchAssistant(models.TransientModel):
         """
         """
         value=super(SearchAssistant,self)._compute_partner_readonly()
-        if self._context.get('create',False)=='sale.order':
-            return self._default_sale_order_id()
+        if self._context.get('create',False)=='purchase.order':
+            return self._default_purchase_order_id()
     
     partner_id = fields.Many2one(
         'res.partner', string='Partner', default=_default_partner_id, required=True)
@@ -81,13 +81,13 @@ class SearchAssistant(models.TransientModel):
     purchase_order_id = fields.Many2one(
         'purchase.order', string='Purchase Order', default=_default_purchase_order_id)
 
-    def action_view_purchase_order(self, sale_order_id):
+    def action_view_purchase_order(self, purchase_order_id):
 
         action = self.env.ref('purchase.purchase_order_action_generic').read()[0]
 
         form_view = [(self.env.ref('purchase.purchase_order_form').id, 'form')]
         action['views'] = form_view
-        action['res_id'] = sale_order_id
+        action['res_id'] = purchase_order_id
         _logger.debug(action)
         return action
 
@@ -128,9 +128,9 @@ class SearchAssistant(models.TransientModel):
                     purchase_order = purchase_obj.create({'partner_id': self.partner_id.id})
                     for line in search_wizard.line_ids:
                         if line.selected:
-                            line_obj.create(self._get_line_values(line.product_id.id,
+                            line_obj.create(self._get_purchase_line_values(line.product_id.id,
                                                                     line.product_uom_qty, purchase_order.id))
-                    return self.action_view_sale_order(purchase_order.id)
+                    return self.action_view_purchase_order(purchase_order.id)
 
     def update_purchase_order(self):
         """
@@ -139,22 +139,23 @@ class SearchAssistant(models.TransientModel):
 
         line_obj = self.env['purchase.order.line']
         for search_wizard in self:
-            exists = [
-                line.product_id.id for line in search_wizard.sale_order_id.order_line]
-            selection = [
-                line.product_id.id for line in search_wizard.line_ids if line.selected]
+            if self.purchase_order_id:
+                exists = [
+                    line.product_id.id for line in search_wizard.purchase_order_id.order_line]
+                selection = [
+                    line.product_id.id for line in search_wizard.line_ids if line.selected]
 
-            if len(selection) > 0:
-                for line in search_wizard.line_ids:
-                    if line.selected and line.product_id.id not in exists:
-                        line_obj.create(self._get_line_values(line.product_id.id,
-                                                                    line.product_uom_qty, 
-                                                                    search_wizard.purchase_order_id.id))
+                if len(selection) > 0:
+                    for line in search_wizard.line_ids:
+                        if line.selected and line.product_id.id not in exists:
+                            line_obj.create(self._get_purchase_line_values(line.product_id.id,
+                                                                        line.product_uom_qty, 
+                                                                        search_wizard.purchase_order_id.id))
 
-                return {'type': 'ir.actions.act_window_close'}
+            return {'type': 'ir.actions.act_window_close'}
     
     def _get_selected_products(self):
         value = super(SearchAssistant, self)._get_selected_products()
-        if self.purchase_order_id:
+        if self._context.get('active_model') == 'sale.order':
             value = set([line.product_id.id for line in self.purchase_order_id.order_line])
         return value

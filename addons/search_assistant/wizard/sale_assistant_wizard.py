@@ -38,7 +38,7 @@ class SearchAssistant(models.TransientModel):
     def _default_sale_order_id(self):
         """
         """
-        if self._context.get('update', False) == 'sale.order':
+        if self._context.get('active_model') == 'sale.order' and self._context.get('active_id', False):
             return self._context.get('active_id', False)
 
     @api.model
@@ -86,7 +86,7 @@ class SearchAssistant(models.TransientModel):
         _logger.debug(action)
         return action
 
-    def _get_line_values(self, product_id, quantity, sale_order_id):
+    def _get_sale_line_values(self, product_id, quantity, sale_order_id):
         line_obj = self.env['sale.order.line']
         values = {
             'name': '',
@@ -116,9 +116,15 @@ class SearchAssistant(models.TransientModel):
                     sale_order = sale_obj.create({'partner_id': self.partner_id.id})
                     for line in search_wizard.line_ids:
                         if line.selected:
-                            line_obj.create(self._get_line_values(line.product_id.id,
+                            line_obj.create(self._get_sale_line_values(line.product_id.id,
                                                                     line.product_uom_qty, sale_order.id))
                     return self.action_view_sale_order(sale_order.id)
+
+    def _get_selected_products(self):
+        value = super(SearchAssistant, self)._get_selected_products()
+        if self._context.get('active_model') == 'sale.order':
+            value = set([line.product_id.id for line in self.sale_order_id.order_line])
+        return value
 
     def update_sale_order(self):
         """
@@ -127,22 +133,19 @@ class SearchAssistant(models.TransientModel):
 
         line_obj = self.env['sale.order.line']
         for search_wizard in self:
-            exists = [
-                line.product_id.id for line in search_wizard.sale_order_id.order_line]
-            selection = [
-                line.product_id.id for line in search_wizard.line_ids if line.selected]
+            if self.sale_order_id:
+                exists = [
+                    line.product_id.id for line in search_wizard.sale_order_id.order_line]
+                selection = [
+                    line.product_id.id for line in search_wizard.line_ids if line.selected]
 
-            if len(selection) > 0:
-                for line in search_wizard.line_ids:
-                    if line.selected and line.product_id.id not in exists:
-                        line_obj.create(self._get_line_values(line.product_id.id,
-                                                                    line.product_uom_qty, 
-                                                                    search_wizard.sale_order_id.id))
+                if len(selection) > 0:
+                    for line in search_wizard.line_ids:
+                        if line.selected and line.product_id.id not in exists:
+                            line_obj.create(self._get_sale_line_values(line.product_id.id,
+                                                                        line.product_uom_qty, 
+                                                                        search_wizard.sale_order_id.id))
 
-                return {'type': 'ir.actions.act_window_close'}
+            return {'type': 'ir.actions.act_window_close'}
     
-    def _get_selected_products(self):
-        value = super(SearchAssistant, self)._get_selected_products()
-        if self.sale_order_id:
-            value = set([line.product_id.id for line in self.sale_order_id.order_line])
-        return value
+    
