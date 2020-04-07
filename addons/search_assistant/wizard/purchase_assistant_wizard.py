@@ -91,9 +91,29 @@ class SearchAssistant(models.TransientModel):
         _logger.debug(action)
         return action
 
+    
+    def _get_line_values(self, product_id, quantity, purchase_order_id):
+        line_obj = self.env['purchase.order.line']
+        values = {
+                'name': '',
+                'order_id': purchase_order_id,
+                'product_id': product_id,
+                'price_unit': 0.0,
+                'product_qty': quantity
+            }
+        draft_line = line_obj.new(values)
+        draft_line.onchange_product_id()
+        values.update({
+                'product_uom':draft_line.product_uom.id,
+                'date_planned':draft_line.date_planned,
+                'price_unit': draft_line.price_unit,
+                'display_type': draft_line.display_type
+                })
+        return values
+
     def create_purchase_order(self):
         """
-        
+
         """
         line_obj = self.env['purchase.order.line']
         purchase_obj = self.env['purchase.order']
@@ -105,41 +125,36 @@ class SearchAssistant(models.TransientModel):
                 selection = [
                     line for line in search_wizard.line_ids if line.selected]
                 if len(selection) > 0:
-                    vals = {
-                        'partner_id': self.partner_id.id
-                    }
-                    purchase_order = purchase_obj.create(vals)
+                    purchase_order = purchase_obj.create({'partner_id': self.partner_id.id})
                     for line in search_wizard.line_ids:
                         if line.selected:
-                            
-                            values = {
-                                'name': 'something',
-                                'order_id': purchase_order.id,
-                                'product_id': line.product_id.id,
-                                'price_unit': 0.0,
-                                'product_qty': line.product_uom_qty
-                            }
+                            line_obj.create(self._get_line_values(line.product_id.id,
+                                                                    line.product_uom_qty, purchase_order.id))
+                    return self.action_view_sale_order(purchase_order.id)
 
-                            # This is something uggly. To avoid this contraints restrictions 
-                            # _sql_constraints = [
-                            #     ('accountable_required_fields',
-                            #         "CHECK(display_type IS NOT NULL OR (product_id IS NOT NULL AND product_uom IS NOT NULL AND date_planned IS NOT NULL))",
-                            #         "Missing required fields on accountable purchase order line."),
-                            #     ('non_accountable_null_fields',
-                            #         "CHECK(display_type IS NULL OR (product_id IS NULL AND price_unit = 0 AND product_uom_qty = 0 AND product_uom IS NULL AND date_planned is NULL))",
-                            #         "Forbidden values on non-accountable purchase order line"),
-                            # ]
-                            # I executed onchange_product_id to obtain the same behaviour as I was creating an Order myself
-                            # I need to find a better way to avoid this.
-                            draft_line = line_obj.new(values)
-                            draft_line.onchange_product_id()
-                            values.update({
-                                    'product_uom':draft_line.product_uom.id,
-                                    'date_planned':draft_line.date_planned,
-                                    'price_unit': draft_line.price_unit,
-                                    'display_type': draft_line.display_type,
-                                    })
-                            
-                            line_obj.create(values)
+    def update_purchase_order(self):
+        """
+        Updates item list based on selection. 
+        """
 
-                    return self.action_view_purchase_order(purchase_order.id)
+        line_obj = self.env['purchase.order.line']
+        for search_wizard in self:
+            exists = [
+                line.product_id.id for line in search_wizard.sale_order_id.order_line]
+            selection = [
+                line.product_id.id for line in search_wizard.line_ids if line.selected]
+
+            if len(selection) > 0:
+                for line in search_wizard.line_ids:
+                    if line.selected and line.product_id.id not in exists:
+                        line_obj.create(self._get_line_values(line.product_id.id,
+                                                                    line.product_uom_qty, 
+                                                                    search_wizard.purchase_order_id.id))
+
+                return {'type': 'ir.actions.act_window_close'}
+    
+    def _get_selected_products(self):
+        value = super(SearchAssistant, self)._get_selected_products()
+        if self.purchase_order_id:
+            value = set([line.product_id.id for line in self.purchase_order_id.order_line])
+        return value

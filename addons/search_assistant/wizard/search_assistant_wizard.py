@@ -96,9 +96,7 @@ class SearchAssistant(models.TransientModel):
         return domain_code
 
 
-
-    @api.onchange('attribute_ids','attribute_value_ids','description','selected','category_ids','code')
-    def search(self):
+    def _get_domain_filter(self):
         """
         """
         _logger.debug('====> filter activated ====>')
@@ -129,16 +127,32 @@ class SearchAssistant(models.TransientModel):
         if len(category_ids)>0:
             domain.append(('categ_id', 'in', category_ids))
         _logger.debug('====> domain ====> %s' % domain)
+        return domain
+
+    def _get_selected_products(self):
+        """
+        This function allows to determine if the product is already set in an existent document
+        """
+        return False
+
+    @api.onchange('attribute_ids','attribute_value_ids','description','selected','category_ids','code')
+    def search(self):
+        product_obj = self.env['product.product']
         self.line_ids = False
-        
+        domain=self._get_domain_filter()
         if len(domain)>0:
             product_ids = product_obj.search(domain)
             line_ids = []
             search_line_obj = self.env['search.assistant.line']
             
+            selected_products=self._get_selected_products()
             for product in product_ids:
+                selected = self.selected
+                if not self.selected:
+                    selected = selected_products and product.id in selected_products
+                
                 line_ids.append((0, 0, {
-                    'selected': self.selected,
+                    'selected': selected,
                     'product_id': product.id,
                     'attribute_value_ids': False,
                     'attribute_value_ids': [(6, 0, product.product_template_attribute_value_ids.ids)],

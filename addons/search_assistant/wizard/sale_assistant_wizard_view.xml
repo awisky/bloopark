@@ -13,7 +13,6 @@
             <xpath expr="//footer" position="inside">
                 <button name="update_sale_order" string="Update Sale Order" type="object" class="btn-primary" invisible="context.get('update',False)!='sale.order'"/>
                 <button name="create_sale_order" string="Create and View Sale Order" type="object" class="btn-primary" invisible="context.get('create',False)!='sale.order'"/>
-                
             </xpath>
         </field>
 

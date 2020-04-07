@@ -38,38 +38,40 @@ class SearchAssistant(models.TransientModel):
     def _default_sale_order_id(self):
         """
         """
-        if self._context.get('update',False)=='sale.order':
-            return self._context.get('active_id',False)
+        if self._context.get('update', False) == 'sale.order':
+            return self._context.get('active_id', False)
 
     @api.model
     def _default_partner_readonly(self):
         """
         """
-        value=super(SearchAssistant,self)._default_partner_readonly()
+        value = super(SearchAssistant, self)._default_partner_readonly()
 
-        if self._context.get('update',False)=='sale.order':
-            value=self._default_sale_order_id()
+        if self._context.get('update', False) == 'sale.order':
+            value = self._default_sale_order_id()
         return value
 
     @api.model
     def _default_partner_id(self):
         """
         """
-        value=super(SearchAssistant,self)._default_partner_id()
-        if self._context.get('create',False)=='sale.order':
-            
-                sale_default_partner_id = self.env['ir.config_parameter'].sudo().get_param(
-                    'search_assistant.sale_default_partner_id', default='False')
-                value = literal_eval(sale_default_partner_id)
-        if self._context.get('update',False)=='sale.order':
-            if self._context.get('active_id',False):
-                    value = self.env['sale.order'].browse(self._context.get('active_id',False)).partner_id.id
-            
+        value = super(SearchAssistant, self)._default_partner_id()
+        if self._context.get('create', False) == 'sale.order':
+
+            sale_default_partner_id = self.env['ir.config_parameter'].sudo().get_param(
+                'search_assistant.sale_default_partner_id', default='False')
+            value = literal_eval(sale_default_partner_id)
+        if self._context.get('update', False) == 'sale.order':
+            if self._context.get('active_id', False):
+                value = self.env['sale.order'].browse(
+                    self._context.get('active_id', False)).partner_id.id
+
         return value
 
     partner_id = fields.Many2one(
         'res.partner', string='Partner', default=_default_partner_id, required=True)
-    partner_readonly = fields.Boolean(string='Partner Readonly', default=_default_partner_readonly)
+    partner_readonly = fields.Boolean(
+        string='Partner Readonly', default=_default_partner_readonly)
 
     sale_order_id = fields.Many2one(
         'sale.order', string='Sale Order', default=_default_sale_order_id)
@@ -83,6 +85,19 @@ class SearchAssistant(models.TransientModel):
         action['res_id'] = sale_order_id
         _logger.debug(action)
         return action
+
+    def _get_line_values(self, product_id, quantity, sale_order_id):
+        line_obj = self.env['sale.order.line']
+        values = {
+            'name': '',
+            'order_id': sale_order_id,
+            'product_id': product_id,
+        }
+        values.update(
+            line_obj._prepare_add_missing_fields(values))
+        values.update(
+            {'product_uom_qty': quantity})
+        return values
 
     def create_sale_order(self):
         """
@@ -98,22 +113,36 @@ class SearchAssistant(models.TransientModel):
                 selection = [
                     line for line in search_wizard.line_ids if line.selected]
                 if len(selection) > 0:
-                    vals = {
-                        'partner_id': self.partner_id.id
-                    }
-                    sale_order = sale_obj.create(vals)
+                    sale_order = sale_obj.create({'partner_id': self.partner_id.id})
                     for line in search_wizard.line_ids:
                         if line.selected:
-                            values = {
-                                'name': 'something',
-                                'order_id': sale_order.id,
-                                'product_id': line.product_id.id,
-                            }
-
-                            values.update(
-                                line_obj._prepare_add_missing_fields(values))
-                            values.update(
-                                {'product_uom_qty': line.product_uom_qty})
-
-                            line_obj.create(values)
+                            line_obj.create(self._get_line_values(line.product_id.id,
+                                                                    line.product_uom_qty, sale_order.id))
                     return self.action_view_sale_order(sale_order.id)
+
+    def update_sale_order(self):
+        """
+        Updates item list based on selection. 
+        """
+
+        line_obj = self.env['sale.order.line']
+        for search_wizard in self:
+            exists = [
+                line.product_id.id for line in search_wizard.sale_order_id.order_line]
+            selection = [
+                line.product_id.id for line in search_wizard.line_ids if line.selected]
+
+            if len(selection) > 0:
+                for line in search_wizard.line_ids:
+                    if line.selected and line.product_id.id not in exists:
+                        line_obj.create(self._get_line_values(line.product_id.id,
+                                                                    line.product_uom_qty, 
+                                                                    search_wizard.sale_order_id.id))
+
+                return {'type': 'ir.actions.act_window_close'}
+    
+    def _get_selected_products(self):
+        value = super(SearchAssistant, self)._get_selected_products()
+        if self.sale_order_id:
+            value = set([line.product_id.id for line in self.sale_order_id.order_line])
+        return value
