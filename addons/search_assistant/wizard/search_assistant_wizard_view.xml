@@ -10,9 +10,15 @@
                 <group>
                     <group>
                         <field name="partner_readonly" invisible="1" />
-                        <field name="partner_id" colspan="4" attrs="{'readonly':[('partner_readonly','=',True)]}"/>
+
+                        <field name="partner_id" colspan="4" attrs="{'readonly':[('partner_readonly','=',True)]}" />
+                    </group>
+                    <group>
+                        <field name="stock_date" />
+                        <field name="warehouse_id" />
                     </group>
                 </group>
+
                 <group>
                     <group>
                         <field name="code" colspan="1" />
@@ -31,18 +37,20 @@
                         <field name="line_ids">
                             <tree editable="bottom" create="false" delete="false">
 
-                                <field name="selected" nolabel="1"/>
+                                <field name="selected" nolabel="1" />
                                 <field name="product_id" readonly="1" force_save="1" />
 
                                 <field name="attribute_value_ids" nolabel="1" widget="many2many_tags" options="{'no_create': True}" colspan="4" readonly="1" />
+                                <field name="qty_available_today" />
                                 <field name="product_uom_qty" />
+                                <field name="price_unit" />
                             </tree>
                         </field>
                     </page>
                 </notebook>
                 <footer>
-                        
-                        <button string="Cancel" class="btn-secondary" special="cancel" />
+
+                    <button string="Cancel" class="btn-secondary" special="cancel" />
                 </footer>
             </form>
         </field>

@@ -18,6 +18,7 @@
     'depends': [
         'sale',
         'purchase',
+        'sale_stock',
     ],
     'data': [
         'security/security.xml',

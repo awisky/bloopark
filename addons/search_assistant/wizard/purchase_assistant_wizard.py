@@ -73,6 +73,15 @@ class SearchAssistant(models.TransientModel):
         if self._context.get('create',False)=='purchase.order':
             return self._default_purchase_order_id()
     
+    @api.model
+    def _default_warehouse_id(self):
+        value = super(SearchAssistant, self)._default_warehouse_id()
+        if self._context.get('active_model', False) == 'sale.order':
+            if self._context.get('active_id', False):
+                value = self.env['sale.order'].browse(
+                    self._context.get('active_id', False)).warehouse_id.id
+        return value
+    
     partner_id = fields.Many2one(
         'res.partner', string='Partner', default=_default_partner_id, required=True)
 
@@ -81,6 +90,8 @@ class SearchAssistant(models.TransientModel):
     purchase_order_id = fields.Many2one(
         'purchase.order', string='Purchase Order', default=_default_purchase_order_id)
 
+    warehouse_id = fields.Many2one('stock.warehouse', default=_default_warehouse_id)
+    
     def action_view_purchase_order(self, purchase_order_id):
 
         action = self.env.ref('purchase.purchase_order_action_generic').read()[0]

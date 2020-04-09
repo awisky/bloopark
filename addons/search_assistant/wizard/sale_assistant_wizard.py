@@ -67,6 +67,27 @@ class SearchAssistant(models.TransientModel):
                     self._context.get('active_id', False)).partner_id.id
 
         return value
+    
+    @api.model
+    def _default_warehouse_id(self):
+        value = super(SearchAssistant, self)._default_warehouse_id()
+        if self._context.get('active_model', False) == 'sale.order':
+            if self._context.get('active_id', False):
+                value = self.env['sale.order'].browse(
+                    self._context.get('active_id', False)).warehouse_id.id
+        return value
+    
+    @api.model
+    def _default_stock_date(self):
+        """
+        """
+        value = super(SearchAssistant, self)._default_stock_date()
+        if self._context.get('active_model', False) == 'sale.order':
+            if self._context.get('active_id', False):
+                value = self.env['sale.order'].browse(
+                    self._context.get('active_id', False)).commitment_date or value
+                
+        return value
 
     partner_id = fields.Many2one(
         'res.partner', string='Partner', default=_default_partner_id, required=True)
@@ -75,6 +96,10 @@ class SearchAssistant(models.TransientModel):
 
     sale_order_id = fields.Many2one(
         'sale.order', string='Sale Order', default=_default_sale_order_id)
+    
+    warehouse_id = fields.Many2one('stock.warehouse', default=_default_warehouse_id)
+
+    stock_date = fields.Datetime('Stock Date', default=_default_stock_date)
 
     def action_view_sale_order(self, sale_order_id):
 
@@ -101,7 +126,6 @@ class SearchAssistant(models.TransientModel):
 
     def _get_selected_products(self):
         value =super(SearchAssistant,self)._get_selected_products()
-        _logger.debug('=====================_get_selected_products===>',self._context.get('active_model'))
         if self._context.get('active_model') == 'sale.order':
             value = set([line.product_id.id for line in self.sale_order_id.order_line])
         return value

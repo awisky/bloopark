@@ -16,8 +16,9 @@ from odoo.tools.misc import formatLang
 
 from odoo.addons import decimal_precision as dp
 from ast import literal_eval
-import logging
 
+from collections import defaultdict
+import logging
 _logger = logging.getLogger(__name__)
 
 
@@ -36,7 +37,56 @@ class SearchAssistantLine(models.TransientModel):
 
     product_uom_qty = fields.Float(
         string='Quantity', digits='Product Unit of Measure', required=True, default=1.0)
+    product_uom = fields.Many2one('uom.uom', string='Unit of Measure', domain="[('category_id', '=', product_uom_category_id)]")
+    product_uom_category_id = fields.Many2one(related='product_id.uom_id.category_id', readonly=True)
+    price_unit = fields.Float('Unit Price', required=True, digits='Product Price', default=0.0)
 
+    # Please see at sale_stock module. I took part of this code from there.
+    virtual_available_at_date = fields.Float(compute='_compute_qty_at_date')
+    scheduled_date = fields.Datetime(compute='_compute_qty_at_date')
+    free_qty_today = fields.Float(compute='_compute_qty_at_date')
+    qty_available_today = fields.Float(string='Stock',compute='_compute_qty_at_date')
+    warehouse_id = fields.Many2one('stock.warehouse', compute='_compute_qty_at_date')
+    qty_to_deliver = fields.Float(compute='_compute_qty_to_deliver')
+
+    @api.depends('product_id', 'product_uom_qty', 'search_id.warehouse_id','search_id.stock_date')
+    def _compute_qty_at_date(self):
+        """ Please see at sale_stock module. I took part of this code from there."""
+        qty_processed_per_product = defaultdict(lambda: 0)
+        grouped_lines = defaultdict(lambda: self.env['search.assistant.line'])
+        stock_date = self.search_id.stock_date or fields.Datetime.now() 
+        warehouse_id =self.search_id.warehouse_id.id
+        for line in self:
+            grouped_lines[(warehouse_id, stock_date)] |= line
+
+        treated = self.browse()
+        for (warehouse, scheduled_date), lines in grouped_lines.items():
+            product_qties = lines.mapped('product_id').with_context(to_date=scheduled_date, warehouse=warehouse).read([
+                'qty_available',
+                'free_qty',
+                'virtual_available',
+            ])
+            qties_per_product = {
+                product['id']: (product['qty_available'], product['free_qty'], product['virtual_available'])
+                for product in product_qties
+            }
+            for line in lines:
+                line.scheduled_date = scheduled_date
+                qty_available_today, free_qty_today, virtual_available_at_date = qties_per_product[line.product_id.id]
+                line.qty_available_today = qty_available_today - qty_processed_per_product[line.product_id.id]
+                line.free_qty_today = free_qty_today - qty_processed_per_product[line.product_id.id]
+                line.virtual_available_at_date = virtual_available_at_date - qty_processed_per_product[line.product_id.id]
+                if line.product_uom and line.product_id.uom_id and line.product_uom != line.product_id.uom_id:
+                    line.qty_available_today = line.product_id.uom_id._compute_quantity(line.qty_available_today, line.product_uom)
+                    line.free_qty_today = line.product_id.uom_id._compute_quantity(line.free_qty_today, line.product_uom)
+                    line.virtual_available_at_date = line.product_id.uom_id._compute_quantity(line.virtual_available_at_date, line.product_uom)
+                qty_processed_per_product[line.product_id.id] += line.product_uom_qty
+            treated |= lines
+        remaining = (self - treated)
+        remaining.virtual_available_at_date = False
+        remaining.scheduled_date = False
+        remaining.free_qty_today = False
+        remaining.qty_available_today = False
 
 
 
@@ -51,13 +101,31 @@ class SearchAssistant(models.TransientModel):
         """
         """
         return False
+    
+    @api.model
+    def _default_warehouse_id(self):
+        """
+        """
+        return False
 
     @api.model
     def _default_partner_readonly(self):
         """
         """
         return False
-        
+
+    @api.model
+    def _default_stock_date(self):
+        """
+        """
+        return fields.Datetime.now() 
+
+    @api.model
+    def _default_warehouse_id(self):
+        company = self.env.company.id
+        warehouse_ids = self.env['stock.warehouse'].search([('company_id', '=', company)], limit=1)
+        return warehouse_ids
+
     partner_readonly = fields.Boolean(string='Partner Readonly', default=_default_partner_readonly)
 
     partner_id = fields.Many2one(
@@ -79,6 +147,9 @@ class SearchAssistant(models.TransientModel):
     line_ids = fields.One2many(
         'search.assistant.line', 'search_id', string='Search Results')
     selected = fields.Boolean('')
+    warehouse_id = fields.Many2one('stock.warehouse', default=_default_warehouse_id)
+
+    stock_date = fields.Datetime('Stock Date', default=_default_stock_date, required=True)
 
     def make_domain(self, domain_name, code):
         """
@@ -141,6 +212,8 @@ class SearchAssistant(models.TransientModel):
             product_ids = product_obj.search(domain)
             line_ids = []
             search_line_obj = self.env['search.assistant.line']
+            now = fields.Datetime.now()
+            
             for product in product_ids:
                 selected = self.selected
                 if not self.selected and selected_products:
@@ -151,12 +224,19 @@ class SearchAssistant(models.TransientModel):
                     'product_id': product.id,
                     'attribute_value_ids': False,
                     'attribute_value_ids': [(6, 0, product.product_template_attribute_value_ids.ids)],
+                    'price_unit': 0.0,
+                    'qty_available_today': 0.0,
                     'description': product.description or '',
                 }))
+
+
             self.line_ids = line_ids
+    
     
     @api.onchange('attribute_ids','attribute_value_ids','description','selected','category_ids','code')
     def search(self):
         """
         """
         self._search(selected_products=None)
+
+    

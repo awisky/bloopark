@@ -11,7 +11,7 @@
                 </xpath>
                 
             <xpath expr="//footer" position="inside">
-                <button name="update_purchase_order" string="Add items" type="object" class="btn-primary" invisible="context.get('active_model',False)!='purchase.order'"/>
+                <button name="add_purchase_order_items" string="Add items" type="object" class="btn-primary" invisible="context.get('active_model',False)!='purchase.order'"/>
                 <button name="create_purchase_order" string="Create and View Purchase Order" type="object" class="btn-primary" invisible="context.get('create',False)!='purchase.order'"/>
                 <button name="trim_purchase_order_items" string="Trim Items" type="object"  invisible="context.get('active_model',False)!='purchase.order'"/>
             </xpath>
