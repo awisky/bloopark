@@ -14,7 +14,7 @@ class SaleOrder(models.Model):
             'view_type': 'form',
             'view_mode': 'form',
             'res_model': 'search.assistant',
-            'context':{'update':'sale.order'},
+            'context':{'active_model':'sale.order'},
             'active_id': self.id,
             'target': 'new',
         }

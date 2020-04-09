@@ -100,6 +100,7 @@ class SearchAssistant(models.TransientModel):
         """
         """
         _logger.debug('====> filter activated ====>')
+        _logger.debug(self._context.get('active_model'))
         product_obj = self.env['product.product']
         product_attribute_obj = self.env['product.template.attribute.value']
         domain = []
@@ -126,17 +127,13 @@ class SearchAssistant(models.TransientModel):
         
         if len(category_ids)>0:
             domain.append(('categ_id', 'in', category_ids))
-        _logger.debug('====> domain ====> %s' % domain)
+        _logger.debug('====> DOMAIN ====> %s' % domain)
         return domain
 
     def _get_selected_products(self):
-        """
-        This function allows to determine if the product is already set in an existent document
-        """
-        return False
+        return None
 
-    @api.onchange('attribute_ids','attribute_value_ids','description','selected','category_ids','code')
-    def search(self):
+    def _search(self, selected_products=None):
         product_obj = self.env['product.product']
         self.line_ids = False
         domain=self._get_domain_filter()
@@ -144,11 +141,9 @@ class SearchAssistant(models.TransientModel):
             product_ids = product_obj.search(domain)
             line_ids = []
             search_line_obj = self.env['search.assistant.line']
-            
-            selected_products=self._get_selected_products()
             for product in product_ids:
                 selected = self.selected
-                if not self.selected:
+                if not self.selected and selected_products:
                     selected = selected_products and product.id in selected_products
                 
                 line_ids.append((0, 0, {
@@ -159,3 +154,9 @@ class SearchAssistant(models.TransientModel):
                     'description': product.description or '',
                 }))
             self.line_ids = line_ids
+    
+    @api.onchange('attribute_ids','attribute_value_ids','description','selected','category_ids','code')
+    def search(self):
+        """
+        """
+        self._search(selected_products=None)

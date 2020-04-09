@@ -14,7 +14,7 @@ class PurchaseOrder(models.Model):
             'view_type': 'form',
             'view_mode': 'form',
             'res_model': 'search.assistant',
-            'context':{'update':'purchase.order'},
+            'context':{'active_model':'purchase.order'},
             'active_id': self.id,
             'target': 'new',
         }

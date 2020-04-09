@@ -47,8 +47,8 @@ class SearchAssistant(models.TransientModel):
         """
         value = super(SearchAssistant, self)._default_partner_readonly()
 
-        if self._context.get('update', False) == 'sale.order':
-            value = self._default_sale_order_id()
+        if self._context.get('active_model', False) == 'sale.order':
+            value = True
         return value
 
     @api.model
@@ -61,7 +61,7 @@ class SearchAssistant(models.TransientModel):
             sale_default_partner_id = self.env['ir.config_parameter'].sudo().get_param(
                 'search_assistant.sale_default_partner_id', default='False')
             value = literal_eval(sale_default_partner_id)
-        if self._context.get('update', False) == 'sale.order':
+        if self._context.get('active_model', False) == 'sale.order':
             if self._context.get('active_id', False):
                 value = self.env['sale.order'].browse(
                     self._context.get('active_id', False)).partner_id.id
@@ -99,6 +99,21 @@ class SearchAssistant(models.TransientModel):
             {'product_uom_qty': quantity})
         return values
 
+    def _get_selected_products(self):
+        value =super(SearchAssistant,self)._get_selected_products()
+        _logger.debug('=====================_get_selected_products===>',self._context.get('active_model'))
+        if self._context.get('active_model') == 'sale.order':
+            value = set([line.product_id.id for line in self.sale_order_id.order_line])
+        return value
+
+    
+    @api.onchange('attribute_ids','attribute_value_ids','description','selected','category_ids','code')
+    def search(self):
+        _logger.debug('=====================search active_model?===>',self._context.get('active_model'))
+        selected_products=self._get_selected_products()
+        self._search(selected_products=selected_products)
+
+    
     def create_sale_order(self):
         """
 
@@ -120,13 +135,7 @@ class SearchAssistant(models.TransientModel):
                                                                     line.product_uom_qty, sale_order.id))
                     return self.action_view_sale_order(sale_order.id)
 
-    def _get_selected_products(self):
-        value = super(SearchAssistant, self)._get_selected_products()
-        if self._context.get('active_model') == 'sale.order':
-            value = set([line.product_id.id for line in self.sale_order_id.order_line])
-        return value
-
-    def update_sale_order(self):
+    def add_sale_order_items(self):
         """
         Updates item list based on selection. 
         """
@@ -148,4 +157,22 @@ class SearchAssistant(models.TransientModel):
 
             return {'type': 'ir.actions.act_window_close'}
     
-    
+    def trim_sale_order_items(self):
+        """
+        Trim selected items from document
+        """
+
+        line_obj = self.env['sale.order.line']
+        for search_wizard in self:
+            if self.sale_order_id:
+                exists = set([
+                    line.product_id.id for line in search_wizard.sale_order_id.order_line])
+                selection = set([
+                    line.product_id.id for line in search_wizard.line_ids if line.selected])
+                trim=[s for s in selection if s in exists]
+                for line in search_wizard.sale_order_id.order_line:
+                    if line.product_id.id in trim:
+                        line.unlink()
+
+            return {'type': 'ir.actions.act_window_close'}
+            
