@@ -1,29 +1,20 @@
 # Odoo 13 Small Business Modules
 
-I developed this modules focused on small business retail stores as part of my test for [Bloopark](https://bloopark.de/en_US/)
-I was encourage to build something original and mainly focused on Odoo. So maybe you will find some issues on Docker, Nginx or Postgres configurations that could be done better, but as I said it was no the main goal.
-My idea was to create a set of tools to allow small stores to be more efficent using odoo.
+I developed this module focusing on small business retail stores as part of my test for [Bloopark](https://bloopark.de/en_US/) I was encouraged to build something original and mainly focused on Odoo. So maybe you will find some issues on Docker, Nginx or Postgres configurations that could be done better, but as I said it was no the main goal. My idea was to create a set of tools that makes the workflow faster.
+
+[Video Demonstration](https://youtu.be/cMHHdh0H7VA)
 
 ## Main Goals
 
-- Create another way to start sales and purchase workflows. Starting point: Products.
-- Create another way to search products on Sales and Purchases.
-- Create Rank Index based on Sales Stats (*)
-  Define products rank positions. Bot for Stats and Index Calculations.
-- Use Rank Index on Search Assistant. (*)
-  Define products Rack Location = Rank Index
-  Add Rank on Sales, Purchases and Inventory Views. 
-  This means that the store will arrange the inventory following the rank index as a rack position.
-  Like JIT methodology. Most Important products closer.
-- Purchase Asisstant based on Rank Index  (*)
-  Buy just what you really need, based on Ranks.
-
- (*) Working on it
-
+- Custom Text Search. This means that you can search using part of the words you remember even if you don't remember the order. Ex. 'De Blac'  or 'D lack' will work to find 'Black Desk' description.
+- Multiple product selection. This means that you can add or trim multiple products of your sale or purchase order while they are in draft state.
+- Quick Creation. This means that you can create a sale or purchase order from the Search Assistant if you call it from the main menu of each document.
+- Stock Calculation. This means that you can see the available stock quantity of each product based on the stock date and warehouse filters. 
+- Rank (*) Developing
 
 ## Installation Considerations
 
-As a requirement for my case test I needed to built a Docker Ready solution. 
+As a requirement for my case test I needed to build a Docker Ready solution. 
 So that is why this is an [Odoo](https://www.odoo.com/es_ES/) 13.0 instance running inside a [Docker](https://www.docker.com) container with [Postgres](https://www.postgresql.org) and [Nginx](https://www.nginx.com). 
 Everything is Opensource.
 
@@ -47,7 +38,7 @@ Enter to Development folder
 ```bash
 ~$ cd Development
 ```
-Clone this repository
+Clone this Repository (https://github.com/awisky/bloopark)
 
 ```bash
 Development$ git clone https://github.com/awisky/bloopark.git
@@ -66,7 +57,7 @@ Now we can clone the Oca Products-Attribute Branch 13.0 repository
 ```bash
 $ git clone -b 13.0 --depth=1 https://github.com/OCA/product-attribute
 ```
-After it finish we go back to our main project folder with:
+After cloning we go back to our main project folder with:
 
 ```bash
 bloopark$ cd ..
@@ -78,6 +69,13 @@ Development$ docker-compose up --build
 ```
 After a couple of minutes you should see every service up and running.
 
+## Initial Odoo Setup
+
+After Docker container is running you must do a few step in your new Odoo instance.
+
+- Create a new database with demonstration data
+- Install Search Assistant module
+- Setup the default partner for sales and purchases on Settings -> Search Assistant
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.

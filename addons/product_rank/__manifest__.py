@@ -8,7 +8,7 @@
         Product Rank """,
     'description': """
         Bloopark Test Case
-        Product Rank
+        Product Rank Features
     """,
     'author': "Agustin Wisky <agustinwisky@gmail.com>",
     'website': "https://agustinwisky.com",
