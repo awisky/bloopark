@@ -74,7 +74,8 @@ After a couple of minutes you should see every service up and running.
 After Docker container is running you must do a few step in your new Odoo instance.
 
 - Create a new database with demonstration data
-- Install Search Assistant module
+- Install Search Assistant module. 
+  If it fails then try to Install Sale and Purchase modules first. Sometimes Odoo fails without a reason :-)
 - Setup the default partner for sales and purchases on Settings -> Search Assistant
 - Grant access to the users on User Settings or Group Settings. Select Search Assitant User checkbox. 
 - Reload Odoo web page (F5) to reload the menu. You will see the Search Assistant menu on Sales and Purchase
