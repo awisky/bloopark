@@ -50,7 +50,7 @@ Development$ cd bloopark
 As this project depends on [OCA](http://odoo-community.org/) product-attributes modules. We must first clone this project inside our project. So inside our bloopark folder enter to addons-oca folder.
 
 ```bash
-bloopark$ cd addons-oca
+bloopark$ cd addons_oca
 ```
 Now we can clone the Oca Products-Attribute Branch 13.0 repository
 
@@ -76,6 +76,8 @@ After Docker container is running you must do a few step in your new Odoo instan
 - Create a new database with demonstration data
 - Install Search Assistant module
 - Setup the default partner for sales and purchases on Settings -> Search Assistant
+- Grant access to the users on User Settings or Group Settings. Select Search Assitant User checkbox. 
+- Reload Odoo web page (F5) to reload the menu. You will see the Search Assistant menu on Sales and Purchase
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.

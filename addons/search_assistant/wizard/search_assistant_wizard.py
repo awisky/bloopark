@@ -29,7 +29,7 @@ class SearchAssistantLine(models.TransientModel):
     _description = "Search Assistant Line"
 
     search_id = fields.Many2one('search.assistant', string='Search')
-    selected = fields.Boolean('')
+    selected = fields.Boolean(string='')
     description = fields.Char('Description')
     attribute_value_ids = fields.Many2many(
         'product.template.attribute.value', string="Attribute Values")
@@ -41,7 +41,7 @@ class SearchAssistantLine(models.TransientModel):
     product_uom_category_id = fields.Many2one(related='product_id.uom_id.category_id', readonly=True)
     price_unit = fields.Float('Unit Price', required=True, digits='Product Price', default=0.0)
 
-    # Please see at sale_stock module. I took part of this code from there.
+    # Please check sale_stock module for a similiar use of this calculation fields. I took part of this code from there.
     virtual_available_at_date = fields.Float(compute='_compute_qty_at_date')
     scheduled_date = fields.Datetime(compute='_compute_qty_at_date')
     free_qty_today = fields.Float(compute='_compute_qty_at_date')

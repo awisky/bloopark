@@ -10,8 +10,6 @@ from odoo import api, fields, models
 class ResConfigSettings(models.TransientModel):
     _inherit = 'res.config.settings'
 
-    check_boolean = fields.Boolean("Custom Configuration", default=False)
-    search_product_attribute_ids= fields.Many2many(comodel_name='product.attribute',string='Product Attribute',)
     sale_default_partner_id = fields.Many2one('res.partner',string='Sale Default Partner',)
     purchase_default_partner_id = fields.Many2one('res.partner',string='Purchase Default Partner',)
 
@@ -19,11 +17,9 @@ class ResConfigSettings(models.TransientModel):
     def get_values(self):
         ICPSudo = self.env['ir.config_parameter'].sudo()
         res = super(ResConfigSettings, self).get_values()
-        search_product_attribute_ids = literal_eval(ICPSudo.get_param('search_assistant.search_product_attribute_ids', default='False'))
         sale_default_partner_id = literal_eval(ICPSudo.get_param('search_assistant.sale_default_partner_id', default='False'))
         purchase_default_partner_id = literal_eval(ICPSudo.get_param('search_assistant.purchase_default_partner_id', default='False'))
         res.update(
-            search_product_attribute_ids=search_product_attribute_ids,
             sale_default_partner_id=sale_default_partner_id,
             purchase_default_partner_id=purchase_default_partner_id
         )
@@ -32,7 +28,6 @@ class ResConfigSettings(models.TransientModel):
     def set_values(self):
         super(ResConfigSettings, self).set_values()
         ICPSudo = self.env['ir.config_parameter'].sudo()
-        ICPSudo.set_param("search_assistant.search_product_attribute_ids", self.search_product_attribute_ids.ids)
         ICPSudo.set_param("search_assistant.sale_default_partner_id", self.sale_default_partner_id.id)
         ICPSudo.set_param("search_assistant.purchase_default_partner_id", self.purchase_default_partner_id.id)
         

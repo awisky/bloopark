@@ -7,16 +7,13 @@
     'summary': """
         Search Product Assistant """,
     'description': """
-        Bloopark Test Case
-        This module allows helps in the sales quotation workflow of small bussiness:
-            - Alows Multiple Filters on the Wizard
+        Custom search features for sales and purchase orders.
     """,
     'author': "Agustin Wisky <agustinwisky@gmail.com>",
     'website': "https://agustinwisky.com",
     'category': 'Proyect',
     'version': '13.0.1.0',
     'depends': [
-        'sale',
         'purchase',
         'sale_stock',
     ],
