@@ -131,7 +131,7 @@ class SearchAssistant(models.TransientModel):
         return value
 
     
-    @api.onchange('attribute_ids','attribute_value_ids','description','selected','category_ids','code')
+    @api.onchange('attribute_ids','attribute_value_ids','description','selected','category_ids','code','brand_ids')
     def search(self):
         _logger.debug('=====================search active_model?===>',self._context.get('active_model'))
         selected_products=self._get_selected_products()

@@ -34,7 +34,8 @@ class SearchAssistantLine(models.TransientModel):
     attribute_value_ids = fields.Many2many(
         'product.template.attribute.value', string="Attribute Values")
     product_id = fields.Many2one('product.product', string='Product')
-
+    brand_id = fields.Many2one(
+        'product.brand', string="Brand")
     product_uom_qty = fields.Float(
         string='Quantity', digits='Product Unit of Measure', required=True, default=1.0)
     product_uom = fields.Many2one('uom.uom', string='Unit of Measure', domain="[('category_id', '=', product_uom_category_id)]")
@@ -131,7 +132,9 @@ class SearchAssistant(models.TransientModel):
     partner_id = fields.Many2one(
         'res.partner', string='Partner', default=_default_partner_id, required=True)
     
-    
+    brand_ids = fields.Many2many(
+        'product.brand', string="Brands")
+
     attribute_ids = fields.Many2many(
         'product.attribute', string='Product Attribute')
     
@@ -177,6 +180,7 @@ class SearchAssistant(models.TransientModel):
         domain = []
         
         attribute_ids = list(set(self.attribute_ids.ids))
+        brand_ids = list(set(self.brand_ids.ids))
         attribute_values_ids = list(set(self.attribute_value_ids.ids))
         category_ids = list(set(self.category_ids.ids))
         description = self.description
@@ -195,7 +199,9 @@ class SearchAssistant(models.TransientModel):
             if len(attribute_ids)>0:
                 attribute_ids=product_attribute_obj.search([('attribute_id','in',attribute_ids)]).ids
                 domain.append(('product_template_attribute_value_ids', 'in', attribute_ids))
-        
+        if len(brand_ids)>0:
+            domain.append(('product_brand_id', 'in', brand_ids))
+
         if len(category_ids)>0:
             domain.append(('categ_id', 'in', category_ids))
         _logger.debug('====> DOMAIN ====> %s' % domain)
@@ -224,6 +230,7 @@ class SearchAssistant(models.TransientModel):
                     'product_id': product.id,
                     'attribute_value_ids': False,
                     'attribute_value_ids': [(6, 0, product.product_template_attribute_value_ids.ids)],
+                    'brand_id': product.product_tmpl_id.product_brand_id and product.product_tmpl_id.product_brand_id.id,
                     'price_unit': 0.0,
                     'qty_available_today': 0.0,
                     'description': product.description or '',
@@ -233,7 +240,7 @@ class SearchAssistant(models.TransientModel):
             self.line_ids = line_ids
     
     
-    @api.onchange('attribute_ids','attribute_value_ids','description','selected','category_ids','code')
+    @api.onchange('attribute_ids','attribute_value_ids','description','selected','category_ids','code','brand_ids')
     def search(self):
         """
         """

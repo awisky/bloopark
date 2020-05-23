@@ -9,6 +9,9 @@ services:
     container_name: odoo_bloopark_web
     depends_on:
       - db
+    build:
+        context: .
+        dockerfile: Dockerfile-Odoo
     ports:
       - "8069:8069"
     volumes:

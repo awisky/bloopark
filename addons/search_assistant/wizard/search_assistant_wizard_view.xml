@@ -26,6 +26,7 @@
                         <field name="category_ids" widget="many2many_tags" options="{'no_create': True}" colspan="4" />
                     </group>
                     <group>
+                        <field name="brand_ids" widget="many2many_tags" options="{'no_create': True}" colspan="4" />
                         <field name="attribute_ids" widget="many2many_tags" options="{'no_create': True}" colspan="4" />
                         <field name="attribute_value_ids" widget="many2many_tags" options="{'no_create': True}" colspan="4" />
                     </group>
@@ -39,7 +40,7 @@
 
                                 <field name="selected" nolabel="1" />
                                 <field name="product_id" readonly="1" force_save="1" />
-
+                                <field name="brand_id" readonly="1" force_save="1" />
                                 <field name="attribute_value_ids" nolabel="1" widget="many2many_tags" options="{'no_create': True}" colspan="4" readonly="1" />
                                 <field name="qty_available_today" />
                                 <field name="product_uom_qty" />

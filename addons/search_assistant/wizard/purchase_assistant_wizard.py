@@ -128,7 +128,7 @@ class SearchAssistant(models.TransientModel):
             value = set([line.product_id.id for line in self.purchase_order_id.order_line])
         return value
 
-    @api.onchange('attribute_ids','attribute_value_ids','description','selected','category_ids','code')
+    @api.onchange('attribute_ids','attribute_value_ids','description','selected','category_ids','code','brand_ids')
     def search(self):
         selected_products=self._get_selected_products()
         self._search(selected_products=selected_products)
