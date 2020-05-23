@@ -231,7 +231,7 @@ class SearchAssistant(models.TransientModel):
                     'attribute_value_ids': False,
                     'attribute_value_ids': [(6, 0, product.product_template_attribute_value_ids.ids)],
                     'brand_id': product.product_tmpl_id.product_brand_id and product.product_tmpl_id.product_brand_id.id,
-                    'price_unit': 0.0,
+                    'price_unit': product.list_price or 0.0,
                     'qty_available_today': 0.0,
                     'description': product.description or '',
                 }))
