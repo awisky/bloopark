@@ -12,7 +12,7 @@
     'author': "Agustin Wisky <agustinwisky@gmail.com>",
     'website': "https://agustinwisky.com",
     'category': 'Proyect',
-    'version': '13.0.1.0',
+    'version': '11.0.1.0',
     'depends': [
         'purchase',
         'sale_management',

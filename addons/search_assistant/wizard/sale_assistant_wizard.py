@@ -21,12 +21,6 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
-class SearchAssistantLine(models.TransientModel):
-    """
-    """
-    _inherit = "search.assistant.line"
-
-
 class SearchAssistant(models.TransientModel):
     """
     """
@@ -85,7 +79,7 @@ class SearchAssistant(models.TransientModel):
         if self._context.get('active_model', False) == 'sale.order':
             if self._context.get('active_id', False):
                 value = self.env['sale.order'].browse(
-                    self._context.get('active_id', False)).commitment_date or value
+                    self._context.get('active_id', False)).date_order or value
                 
         return value
 

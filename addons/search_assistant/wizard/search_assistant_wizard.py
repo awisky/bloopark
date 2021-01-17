@@ -28,65 +28,27 @@ class SearchAssistantLine(models.TransientModel):
     _name = "search.assistant.line"
     _description = "Search Assistant Line"
 
-    search_id = fields.Many2one('search.assistant', string='Search')
+    search_id = fields.Many2one('search.assistant', 'Search',required=True)
     selected = fields.Boolean(string='')
     description = fields.Char('Description')
     attribute_value_ids = fields.Many2many(
-        'product.template.attribute.value', string="Attribute Values")
+        'product.attribute.value', string='Attribute Values')
     product_id = fields.Many2one('product.product', string='Product')
 
     product_uom_qty = fields.Float(
-        string='Quantity', digits='Product Unit of Measure', required=True, default=1.0)
+        string='Quantity', digits=dp.get_precision('Product Price'),required=True, default=1.0)
     product_uom = fields.Many2one('uom.uom', string='Unit of Measure', domain="[('category_id', '=', product_uom_category_id)]")
     product_uom_category_id = fields.Many2one(related='product_id.uom_id.category_id', readonly=True)
-    price_unit = fields.Float('Unit Price', required=True, digits='Product Price', default=0.0)
+    price_unit = fields.Float('Unit Price', required=True, digits=dp.get_precision('Product Price'), default=0.0)
 
     # Please check sale_stock module for a similiar use of this calculation fields. I took part of this code from there.
-    virtual_available_at_date = fields.Float(compute='_compute_qty_at_date')
-    scheduled_date = fields.Datetime(compute='_compute_qty_at_date')
-    free_qty_today = fields.Float(compute='_compute_qty_at_date')
-    qty_available_today = fields.Float(string='Stock',compute='_compute_qty_at_date')
-    warehouse_id = fields.Many2one('stock.warehouse', compute='_compute_qty_at_date')
-    qty_to_deliver = fields.Float(compute='_compute_qty_to_deliver')
+    virtual_available_at_date = fields.Float()
+    scheduled_date = fields.Datetime()
+    free_qty_today = fields.Float()
+    qty_available_today = fields.Float(string='Stock',)
+    warehouse_id = fields.Many2one('stock.warehouse')
+    qty_to_deliver = fields.Float()
 
-    @api.depends('product_id', 'product_uom_qty', 'search_id.warehouse_id','search_id.stock_date')
-    def _compute_qty_at_date(self):
-        """ Please see at sale_stock module. I took part of this code from there."""
-        qty_processed_per_product = defaultdict(lambda: 0)
-        grouped_lines = defaultdict(lambda: self.env['search.assistant.line'])
-        stock_date = self.search_id.stock_date or fields.Datetime.now() 
-        warehouse_id =self.search_id.warehouse_id.id
-        for line in self:
-            grouped_lines[(warehouse_id, stock_date)] |= line
-
-        treated = self.browse()
-        for (warehouse, scheduled_date), lines in grouped_lines.items():
-            product_qties = lines.mapped('product_id').with_context(to_date=scheduled_date, warehouse=warehouse).read([
-                'qty_available',
-                'free_qty',
-                'virtual_available',
-            ])
-            qties_per_product = {
-                product['id']: (product['qty_available'], product['free_qty'], product['virtual_available'])
-                for product in product_qties
-            }
-            for line in lines:
-                line.scheduled_date = scheduled_date
-                qty_available_today, free_qty_today, virtual_available_at_date = qties_per_product[line.product_id.id]
-                line.qty_available_today = qty_available_today - qty_processed_per_product[line.product_id.id]
-                line.free_qty_today = free_qty_today - qty_processed_per_product[line.product_id.id]
-                line.virtual_available_at_date = virtual_available_at_date - qty_processed_per_product[line.product_id.id]
-                if line.product_uom and line.product_id.uom_id and line.product_uom != line.product_id.uom_id:
-                    line.qty_available_today = line.product_id.uom_id._compute_quantity(line.qty_available_today, line.product_uom)
-                    line.free_qty_today = line.product_id.uom_id._compute_quantity(line.free_qty_today, line.product_uom)
-                    line.virtual_available_at_date = line.product_id.uom_id._compute_quantity(line.virtual_available_at_date, line.product_uom)
-                qty_processed_per_product[line.product_id.id] += line.product_uom_qty
-            treated |= lines
-        remaining = (self - treated)
-        remaining.virtual_available_at_date = False
-        remaining.scheduled_date = False
-        remaining.free_qty_today = False
-        remaining.qty_available_today = False
 
 
 
@@ -122,7 +84,7 @@ class SearchAssistant(models.TransientModel):
 
     @api.model
     def _default_warehouse_id(self):
-        company = self.env.company.id
+        company = self.env.user.company_id.id
         warehouse_ids = self.env['stock.warehouse'].search([('company_id', '=', company)], limit=1)
         return warehouse_ids
 
@@ -136,7 +98,7 @@ class SearchAssistant(models.TransientModel):
         'product.attribute', string='Product Attribute')
     
     attribute_value_ids = fields.Many2many(
-        'product.template.attribute.value', string="Attribute Values")
+        'product.attribute.value', string="Attribute Values")
     category_ids = fields.Many2many(
         'product.category', string="Product Category")
     code = fields.Char(string='Code')
@@ -173,7 +135,7 @@ class SearchAssistant(models.TransientModel):
         _logger.debug('====> filter activated ====>')
         _logger.debug(self._context.get('active_model'))
         product_obj = self.env['product.product']
-        product_attribute_obj = self.env['product.template.attribute.value']
+        product_attribute_obj = self.env['product.attribute.value']
         domain = []
         
         attribute_ids = list(set(self.attribute_ids.ids))
@@ -190,11 +152,11 @@ class SearchAssistant(models.TransientModel):
                 domain.append(code_domain)
         
         if len(attribute_values_ids)>0:
-            domain.append(('product_template_attribute_value_ids', 'in', attribute_values_ids))
+            domain.append(('attribute_value_ids', 'in', attribute_values_ids))
         else:
             if len(attribute_ids)>0:
                 attribute_ids=product_attribute_obj.search([('attribute_id','in',attribute_ids)]).ids
-                domain.append(('product_template_attribute_value_ids', 'in', attribute_ids))
+                domain.append(('attribute_value_ids', 'in', attribute_ids))
         
         if len(category_ids)>0:
             domain.append(('categ_id', 'in', category_ids))
@@ -222,8 +184,7 @@ class SearchAssistant(models.TransientModel):
                 line_ids.append((0, 0, {
                     'selected': selected,
                     'product_id': product.id,
-                    'attribute_value_ids': False,
-                    'attribute_value_ids': [(6, 0, product.product_template_attribute_value_ids.ids)],
+                    'attribute_value_ids': [(6, 0, product.attribute_value_ids.ids)],
                     'price_unit': 0.0,
                     'qty_available_today': 0.0,
                     'description': product.description or '',

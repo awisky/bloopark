@@ -21,12 +21,6 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
-class SearchAssistantLine(models.TransientModel):
-    """
-    """
-    _inherit = "search.assistant.line"
-
-
 class SearchAssistant(models.TransientModel):
     """
     """
