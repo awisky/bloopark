@@ -1,0 +1,17 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "editor.rulers": [80],
+    "editor.formatOnSave": true,
+    "python.formatting.autopep8Args": ["--max-line-length=80"],
+    "[python]": {
+      "editor.codeActionsOnSave": {
+        "source.organizeImports": true
+      }
+    }
+  }
+}

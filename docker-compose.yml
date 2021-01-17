@@ -6,11 +6,11 @@ version: '3'
 services:
   web:
     image: odoo:13.0
-    container_name: odoo_bloopark_web
     depends_on:
       - db
     ports:
       - "8069:8069"
+    tty: true
     volumes:
       - odoo-web-data:/var/lib/odoo
       - ./config:/etc/odoo
@@ -18,13 +18,11 @@ services:
       - ./addons_oca:/mnt/oca-addons
   db:
     image: postgres:10
-    container_name: odoo_bloopark_db
     env_file:
       - db.env
     volumes:
       - odoo-db-data:/var/lib/postgresql/data/pgdata
   proxy:
-    container_name: odoo_bloopark_proxy
     depends_on:
         - web
     build:

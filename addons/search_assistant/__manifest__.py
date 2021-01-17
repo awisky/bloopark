@@ -15,7 +15,7 @@
     'version': '13.0.1.0',
     'depends': [
         'purchase',
-        'sale_stock',
+        'sale_management',
     ],
     'data': [
         'security/security.xml',
@@ -29,4 +29,5 @@
         'views/menu.xml',
     ],
     'installable': True,
+    'auto_install': False,
 }
