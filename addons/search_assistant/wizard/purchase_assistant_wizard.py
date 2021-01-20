@@ -38,35 +38,36 @@ class SearchAssistant(models.TransientModel):
     def _default_partner_readonly(self):
         """
         """
-        value=super(SearchAssistant,self)._default_partner_readonly()
-        if self._context.get('update',False)=='purchase.order':
-            value=self._default_purchase_order_id()
+        value = super(SearchAssistant, self)._default_partner_readonly()
+        if self._context.get('update', False) == 'purchase.order':
+            value = self._default_purchase_order_id()
         return value
 
     @api.model
     def _default_partner_id(self):
         """
         """
-        value=super(SearchAssistant,self)._default_partner_id()
-        if self._context.get('create',False)=='purchase.order':
-            
-                purchase_default_partner_id = self.env['ir.config_parameter'].sudo().get_param(
-                    'search_assistant.purchase_default_partner_id', default='False')
-                value = literal_eval(purchase_default_partner_id)
-        if self._context.get('active_model',False)=='purchase.order':
-            if self._context.get('active_id',False):
-                    value = self.env['purchase.order'].browse(self._context.get('active_id',False)).partner_id.id
-           
+        value = super(SearchAssistant, self)._default_partner_id()
+        if self._context.get('create', False) == 'purchase.order':
+
+            purchase_default_partner_id = self.env['ir.config_parameter'].sudo().get_param(
+                'search_assistant.purchase_default_partner_id', default='False')
+            value = literal_eval(purchase_default_partner_id)
+        if self._context.get('active_model', False) == 'purchase.order':
+            if self._context.get('active_id', False):
+                value = self.env['purchase.order'].browse(
+                    self._context.get('active_id', False)).partner_id.id
+
         return value
 
     @api.model
     def _compute_partner_readonly(self):
         """
         """
-        value=super(SearchAssistant,self)._compute_partner_readonly()
-        if self._context.get('create',False)=='purchase.order':
+        value = super(SearchAssistant, self)._compute_partner_readonly()
+        if self._context.get('create', False) == 'purchase.order':
             return self._default_purchase_order_id()
-    
+
     @api.model
     def _default_warehouse_id(self):
         value = super(SearchAssistant, self)._default_warehouse_id()
@@ -75,20 +76,23 @@ class SearchAssistant(models.TransientModel):
                 value = self.env['sale.order'].browse(
                     self._context.get('active_id', False)).warehouse_id.id
         return value
-    
+
     partner_id = fields.Many2one(
         'res.partner', string='Partner', default=_default_partner_id, required=True)
 
-    partner_readonly = fields.Boolean(string='Partner Readonly', default=_default_partner_readonly)
+    partner_readonly = fields.Boolean(
+        string='Partner Readonly', default=_default_partner_readonly)
 
     purchase_order_id = fields.Many2one(
         'purchase.order', string='Purchase Order', default=_default_purchase_order_id)
 
-    warehouse_id = fields.Many2one('stock.warehouse', default=_default_warehouse_id)
-    
+    warehouse_id = fields.Many2one(
+        'stock.warehouse', default=_default_warehouse_id)
+
     def action_view_purchase_order(self, purchase_order_id):
 
-        action = self.env.ref('purchase.purchase_order_action_generic').read()[0]
+        action = self.env.ref(
+            'purchase.purchase_order_action_generic').read()[0]
 
         form_view = [(self.env.ref('purchase.purchase_order_form').id, 'form')]
         action['views'] = form_view
@@ -96,37 +100,36 @@ class SearchAssistant(models.TransientModel):
         _logger.debug(action)
         return action
 
-    
     def _get_purchase_line_values(self, product_id, quantity, purchase_order_id):
         line_obj = self.env['purchase.order.line']
         values = {
-                'name': '',
-                'order_id': purchase_order_id,
-                'product_id': product_id,
-                'price_unit': 0.0,
-                'product_qty': quantity
-            }
+            'name': '',
+            'order_id': purchase_order_id,
+            'product_id': product_id,
+            'price_unit': 0.0,
+            'product_qty': quantity
+        }
         draft_line = line_obj.new(values)
         draft_line.onchange_product_id()
         values.update({
-                'product_uom':draft_line.product_uom.id,
-                'date_planned':draft_line.date_planned,
-                'price_unit': draft_line.price_unit,
-                'display_type': draft_line.display_type
-                })
+            'product_uom': draft_line.product_uom.id,
+            'date_planned': draft_line.date_planned,
+            'price_unit': draft_line.price_unit,
+            'display_type': draft_line.display_type
+        })
         return values
-    
+
     def _get_selected_products(self):
-        value =super(SearchAssistant,self)._get_selected_products()
+        value = super(SearchAssistant, self)._get_selected_products()
         if self._context.get('active_model') == 'purchase.order':
-            value = set([line.product_id.id for line in self.purchase_order_id.order_line])
+            value = set(
+                [line.product_id.id for line in self.purchase_order_id.order_line])
         return value
 
-    @api.onchange('attribute_ids','attribute_value_ids','description','selected','category_ids','code')
+    @api.onchange('attribute_ids', 'attribute_value_ids', 'description', 'selected', 'category_ids', 'code', 'warehouse_id', 'stock_date')
     def search(self):
-        selected_products=self._get_selected_products()
+        selected_products = self._get_selected_products()
         self._search(selected_products=selected_products)
-
 
     def create_purchase_order(self):
         """
@@ -142,11 +145,12 @@ class SearchAssistant(models.TransientModel):
                 selection = [
                     line for line in search_wizard.line_ids if line.selected]
                 if len(selection) > 0:
-                    purchase_order = purchase_obj.create({'partner_id': self.partner_id.id})
+                    purchase_order = purchase_obj.create(
+                        {'partner_id': self.partner_id.id})
                     for line in search_wizard.line_ids:
                         if line.selected:
                             line_obj.create(self._get_purchase_line_values(line.product_id.id,
-                                                                    line.product_uom_qty, purchase_order.id))
+                                                                           line.product_uom_qty, purchase_order.id))
                     return self.action_view_purchase_order(purchase_order.id)
 
     def add_purchase_order_items(self):
@@ -166,11 +170,10 @@ class SearchAssistant(models.TransientModel):
                     for line in search_wizard.line_ids:
                         if line.selected and line.product_id.id not in exists:
                             line_obj.create(self._get_purchase_line_values(line.product_id.id,
-                                                                        line.product_uom_qty, 
-                                                                        search_wizard.purchase_order_id.id))
+                                                                           line.product_uom_qty,
+                                                                           search_wizard.purchase_order_id.id))
 
             return {'type': 'ir.actions.act_window_close'}
-    
 
     def trim_purchase_order_items(self):
         """
@@ -184,11 +187,9 @@ class SearchAssistant(models.TransientModel):
                     line.product_id.id for line in search_wizard.purchase_order_id.order_line])
                 selection = set([
                     line.product_id.id for line in search_wizard.line_ids if line.selected])
-                trim=[s for s in selection if s in exists]
+                trim = [s for s in selection if s in exists]
                 for line in search_wizard.purchase_order_id.order_line:
                     if line.product_id.id in trim:
                         line.unlink()
 
             return {'type': 'ir.actions.act_window_close'}
-    
- 

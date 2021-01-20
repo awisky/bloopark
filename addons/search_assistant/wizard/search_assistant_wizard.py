@@ -28,7 +28,7 @@ class SearchAssistantLine(models.TransientModel):
     _name = "search.assistant.line"
     _description = "Search Assistant Line"
 
-    search_id = fields.Many2one('search.assistant', 'Search',required=True)
+    search_id = fields.Many2one('search.assistant', 'Search', required=True)
     selected = fields.Boolean(string='')
     description = fields.Char('Description')
     attribute_value_ids = fields.Many2many(
@@ -36,10 +36,13 @@ class SearchAssistantLine(models.TransientModel):
     product_id = fields.Many2one('product.product', string='Product')
 
     product_uom_qty = fields.Float(
-        string='Quantity', digits=dp.get_precision('Product Price'),required=True, default=1.0)
-    product_uom = fields.Many2one('uom.uom', string='Unit of Measure', domain="[('category_id', '=', product_uom_category_id)]")
-    product_uom_category_id = fields.Many2one(related='product_id.uom_id.category_id', readonly=True)
-    price_unit = fields.Float('Unit Price', required=True, digits=dp.get_precision('Product Price'), default=0.0)
+        string='Quantity', digits=dp.get_precision('Product Price'), required=True, default=1.0)
+    product_uom = fields.Many2one('uom.uom', string='Unit of Measure',
+                                  domain="[('category_id', '=', product_uom_category_id)]")
+    product_uom_category_id = fields.Many2one(
+        related='product_id.uom_id.category_id', readonly=True)
+    price_unit = fields.Float('Unit Price', required=True, digits=dp.get_precision(
+        'Product Price'), default=0.0)
 
     # Please check sale_stock module for a similiar use of this calculation fields. I took part of this code from there.
     virtual_available_at_date = fields.Float()
@@ -48,8 +51,6 @@ class SearchAssistantLine(models.TransientModel):
     qty_available_today = fields.Float(string='Stock',)
     warehouse_id = fields.Many2one('stock.warehouse')
     qty_to_deliver = fields.Float()
-
-
 
 
 class SearchAssistant(models.TransientModel):
@@ -63,7 +64,7 @@ class SearchAssistant(models.TransientModel):
         """
         """
         return False
-    
+
     @api.model
     def _default_warehouse_id(self):
         """
@@ -80,23 +81,24 @@ class SearchAssistant(models.TransientModel):
     def _default_stock_date(self):
         """
         """
-        return fields.Datetime.now() 
+        return fields.Datetime.now()
 
     @api.model
     def _default_warehouse_id(self):
         company = self.env.user.company_id.id
-        warehouse_ids = self.env['stock.warehouse'].search([('company_id', '=', company)], limit=1)
+        warehouse_ids = self.env['stock.warehouse'].search(
+            [('company_id', '=', company)], limit=1)
         return warehouse_ids
 
-    partner_readonly = fields.Boolean(string='Partner Readonly', default=_default_partner_readonly)
+    partner_readonly = fields.Boolean(
+        string='Partner Readonly', default=_default_partner_readonly)
 
     partner_id = fields.Many2one(
         'res.partner', string='Partner', default=_default_partner_id, required=True)
-    
-    
+
     attribute_ids = fields.Many2many(
         'product.attribute', string='Product Attribute')
-    
+
     attribute_value_ids = fields.Many2many(
         'product.attribute.value', string="Attribute Values")
     category_ids = fields.Many2many(
@@ -109,56 +111,57 @@ class SearchAssistant(models.TransientModel):
     line_ids = fields.One2many(
         'search.assistant.line', 'search_id', string='Search Results')
     selected = fields.Boolean('')
-    warehouse_id = fields.Many2one('stock.warehouse', default=_default_warehouse_id)
+    warehouse_id = fields.Many2one(
+        'stock.warehouse', default=_default_warehouse_id)
 
-    stock_date = fields.Datetime('Stock Date', default=_default_stock_date, required=True)
+    stock_date = fields.Datetime(
+        'Stock Date', default=_default_stock_date, required=True)
 
     def make_domain(self, domain_name, code):
         """
         This function builds a domain spliting the code by spaces
         """
-        domain_code= [(domain_name,'ilike','%')]
+        domain_code = [(domain_name, 'ilike', '%')]
         if code:
-            i=code.find(' ')
-            domain_code=[]
-            while i!= -1:
-                domain_code.append((domain_name,'ilike',code[0:i]))
-                code=code[i+1:]
-                i=code.find(' ')
-            domain_code.append((domain_name,'ilike',code))
+            i = code.find(' ')
+            domain_code = []
+            while i != -1:
+                domain_code.append((domain_name, 'ilike', code[0:i]))
+                code = code[i+1:]
+                i = code.find(' ')
+            domain_code.append((domain_name, 'ilike', code))
         return domain_code
-
 
     def _get_domain_filter(self):
         """
         """
         _logger.debug('====> filter activated ====>')
         _logger.debug(self._context.get('active_model'))
-        product_obj = self.env['product.product']
         product_attribute_obj = self.env['product.attribute.value']
         domain = []
-        
+
         attribute_ids = list(set(self.attribute_ids.ids))
         attribute_values_ids = list(set(self.attribute_value_ids.ids))
         category_ids = list(set(self.category_ids.ids))
         description = self.description
         code = self.code
 
-        if description and len(description)>0:
-            for description_domain in self.make_domain('name',description):
+        if description and len(description) > 0:
+            for description_domain in self.make_domain('name', description):
                 domain.append(description_domain)
-        if code and len(code)>0:
-            for code_domain in self.make_domain('default_code',code):
+        if code and len(code) > 0:
+            for code_domain in self.make_domain('default_code', code):
                 domain.append(code_domain)
-        
-        if len(attribute_values_ids)>0:
+
+        if len(attribute_values_ids) > 0:
             domain.append(('attribute_value_ids', 'in', attribute_values_ids))
         else:
-            if len(attribute_ids)>0:
-                attribute_ids=product_attribute_obj.search([('attribute_id','in',attribute_ids)]).ids
+            if len(attribute_ids) > 0:
+                attribute_ids = product_attribute_obj.search(
+                    [('attribute_id', 'in', attribute_ids)]).ids
                 domain.append(('attribute_value_ids', 'in', attribute_ids))
-        
-        if len(category_ids)>0:
+
+        if len(category_ids) > 0:
             domain.append(('categ_id', 'in', category_ids))
         _logger.debug('====> DOMAIN ====> %s' % domain)
         return domain
@@ -169,35 +172,29 @@ class SearchAssistant(models.TransientModel):
     def _search(self, selected_products=None):
         product_obj = self.env['product.product']
         self.line_ids = False
-        domain=self._get_domain_filter()
-        if len(domain)>0:
+        domain = self._get_domain_filter()
+        if len(domain) > 0:
             product_ids = product_obj.search(domain)
             line_ids = []
-            search_line_obj = self.env['search.assistant.line']
-            now = fields.Datetime.now()
-            
             for product in product_ids:
                 selected = self.selected
                 if not self.selected and selected_products:
                     selected = selected_products and product.id in selected_products
                 
+                available_qty = self.env['stock.quant']._get_available_quantity(product, self.warehouse_id.view_location_id)
                 line_ids.append((0, 0, {
                     'selected': selected,
                     'product_id': product.id,
                     'attribute_value_ids': [(6, 0, product.attribute_value_ids.ids)],
-                    'price_unit': 0.0,
-                    'qty_available_today': 0.0,
+                    'price_unit': product.list_price,
+                    'qty_available_today': available_qty,
                     'description': product.description or '',
                 }))
 
-
             self.line_ids = line_ids
-    
-    
-    @api.onchange('attribute_ids','attribute_value_ids','description','selected','category_ids','code')
+
+    @api.onchange('attribute_ids', 'attribute_value_ids', 'description', 'selected', 'category_ids', 'code', 'warehouse_id', 'stock_date')
     def search(self):
         """
         """
         self._search(selected_products=None)
-
-    

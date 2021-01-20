@@ -61,7 +61,7 @@ class SearchAssistant(models.TransientModel):
                     self._context.get('active_id', False)).partner_id.id
 
         return value
-    
+
     @api.model
     def _default_warehouse_id(self):
         value = super(SearchAssistant, self)._default_warehouse_id()
@@ -70,7 +70,7 @@ class SearchAssistant(models.TransientModel):
                 value = self.env['sale.order'].browse(
                     self._context.get('active_id', False)).warehouse_id.id
         return value
-    
+
     @api.model
     def _default_stock_date(self):
         """
@@ -80,7 +80,7 @@ class SearchAssistant(models.TransientModel):
             if self._context.get('active_id', False):
                 value = self.env['sale.order'].browse(
                     self._context.get('active_id', False)).date_order or value
-                
+
         return value
 
     partner_id = fields.Many2one(
@@ -90,8 +90,9 @@ class SearchAssistant(models.TransientModel):
 
     sale_order_id = fields.Many2one(
         'sale.order', string='Sale Order', default=_default_sale_order_id)
-    
-    warehouse_id = fields.Many2one('stock.warehouse', default=_default_warehouse_id)
+
+    warehouse_id = fields.Many2one(
+        'stock.warehouse', default=_default_warehouse_id)
 
     stock_date = fields.Datetime('Stock Date', default=_default_stock_date)
 
@@ -119,19 +120,19 @@ class SearchAssistant(models.TransientModel):
         return values
 
     def _get_selected_products(self):
-        value =super(SearchAssistant,self)._get_selected_products()
+        value = super(SearchAssistant, self)._get_selected_products()
         if self._context.get('active_model') == 'sale.order':
-            value = set([line.product_id.id for line in self.sale_order_id.order_line])
+            value = set(
+                [line.product_id.id for line in self.sale_order_id.order_line])
         return value
 
-    
-    @api.onchange('attribute_ids','attribute_value_ids','description','selected','category_ids','code')
+    @api.onchange('attribute_ids', 'attribute_value_ids', 'description', 'selected', 'category_ids', 'code', 'warehouse_id', 'stock_date')
     def search(self):
-        _logger.debug('=====================search active_model?===>',self._context.get('active_model'))
-        selected_products=self._get_selected_products()
+        _logger.debug('=====================search active_model?===>',
+                      self._context.get('active_model'))
+        selected_products = self._get_selected_products()
         self._search(selected_products=selected_products)
 
-    
     def create_sale_order(self):
         """
 
@@ -146,11 +147,12 @@ class SearchAssistant(models.TransientModel):
                 selection = [
                     line for line in search_wizard.line_ids if line.selected]
                 if len(selection) > 0:
-                    sale_order = sale_obj.create({'partner_id': self.partner_id.id})
+                    sale_order = sale_obj.create(
+                        {'partner_id': self.partner_id.id})
                     for line in search_wizard.line_ids:
                         if line.selected:
                             line_obj.create(self._get_sale_line_values(line.product_id.id,
-                                                                    line.product_uom_qty, sale_order.id))
+                                                                       line.product_uom_qty, sale_order.id))
                     return self.action_view_sale_order(sale_order.id)
 
     def add_sale_order_items(self):
@@ -170,11 +172,11 @@ class SearchAssistant(models.TransientModel):
                     for line in search_wizard.line_ids:
                         if line.selected and line.product_id.id not in exists:
                             line_obj.create(self._get_sale_line_values(line.product_id.id,
-                                                                        line.product_uom_qty, 
-                                                                        search_wizard.sale_order_id.id))
+                                                                       line.product_uom_qty,
+                                                                       search_wizard.sale_order_id.id))
 
             return {'type': 'ir.actions.act_window_close'}
-    
+
     def trim_sale_order_items(self):
         """
         Trim selected items from document
@@ -187,10 +189,9 @@ class SearchAssistant(models.TransientModel):
                     line.product_id.id for line in search_wizard.sale_order_id.order_line])
                 selection = set([
                     line.product_id.id for line in search_wizard.line_ids if line.selected])
-                trim=[s for s in selection if s in exists]
+                trim = [s for s in selection if s in exists]
                 for line in search_wizard.sale_order_id.order_line:
                     if line.product_id.id in trim:
                         line.unlink()
 
             return {'type': 'ir.actions.act_window_close'}
-            

@@ -40,7 +40,7 @@
                                 <field name="product_id" readonly="1" force_save="1" />
 
                                 <field name="attribute_value_ids" string="Attributes" widget="many2many_tags" options="{'no_create': True}" colspan="4" readonly="1" />
-                                <field name="qty_available_today" />
+                                <field name="qty_available_today" readonly="1"/>
                                 <field name="product_uom_qty" />
                                 <field name="price_unit" />
                             </tree>
